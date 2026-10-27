@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Conejo Guardián de la Huerta - Videojuego Educativo 2D</title>
+  <meta name="description" content="Juego 2D educativo en HTML5 Canvas con detección de colisiones AABB y Máquina de Estados Finitos (FSM).">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Encabezado del Juego -->
+  <header>
+    <div class="badge">🌱 Videojuego Educativo Agroecológico</div>
+    <h1>El Conejo Guardián de la Huerta</h1>
+    <p class="subtitle">Protege los cultivos de las plagas sin pesticidas tóxicos mediante control biológico y reflejos.</p>
+  </header>
+
+  <!-- Contenedor Principal del Juego -->
+  <main class="game-wrapper">
+    
+    <!-- Barra Superior de Estado (HUD) -->
+    <section class="hud-bar" aria-label="Información de la Partida">
+      <!-- Sistema de Estado: Nutrientes Globales -->
+      <div class="hud-item nutrient-container">
+        <span class="hud-label" id="nutrientsLabel">Nutrientes del Cultivo:</span>
+        <div class="nutrient-bar-bg" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-labelledby="nutrientsLabel">
+          <div class="nutrient-bar-fill" id="nutrientFill" style="width: 100%;"></div>
+        </div>
+        <span class="hud-value" id="nutrientText">100%</span>
+      </div>
+
+      <!-- Plagas activas en la huerta -->
+      <div class="hud-item">
+        <span class="hud-label">Plagas en Huerta</span>
+        <span class="hud-value" id="activePests">🐛 0</span>
+      </div>
+
+      <!-- Contador de plagas controladas/ahuyentadas -->
+      <div class="hud-item">
+        <span class="hud-label">Plagas Ahuyentadas</span>
+        <span class="hud-value" id="repelledPests" style="color: #68d391;">🛡️ 0</span>
+      </div>
+    </section>
+
+    <!-- Lienzo Canvas 2D -->
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="800" height="480"></canvas>
+
+      <!-- Pantalla de Game Over / Fin de Partida -->
+      <div class="overlay-screen" id="gameOverScreen">
+        <h2 class="overlay-title loss" id="overlayTitle">¡Huerta Sin Nutrientes!</h2>
+        <p class="overlay-desc" id="overlayDesc">
+          Los insectos consumieron todos los nutrientes de los vegetales. En la agricultura ecológica, la rápida respuesta del guardián biológico previene el daño al ecosistema.
+        </p>
+        <button class="btn-primary" id="restartBtn">Reintentar Custodia 🌱</button>
+      </div>
+    </div>
+
+    <!-- Barra de Controles y Herramientas Educativas -->
+    <section class="controls-bar">
+      <div class="keys-hint">
+        <span>Controles:</span>
+        <span class="kbd">←</span> <span class="kbd">→</span> o <span class="kbd">A</span> <span class="kbd">D</span> para Moverse | 
+        <span class="kbd">Espacio</span> para Saltar / Espantar
+      </div>
+      <label class="debug-toggle" title="Muestra las cajas de colisión AABB y estados de la FSM sobre el canvas">
+        <input type="checkbox" id="debugBoxToggle">
+        <span>Modo Visualizador AABB & FSM</span>
+      </label>
+    </section>
+
+  </main>
+
+  <!-- Paneles Educativos de Fundamentos de Ciencias de la Computación y Física 2D -->
+  <section class="educational-panel">
+    
+    <!-- Tarjeta 1: Física AABB -->
+    <article class="info-card">
+      <h3>📐 1. Detección de Colisiones AABB</h3>
+      <p>
+        <strong>AABB (Axis-Aligned Bounding Box)</strong> o <em>Caja Envolvente Alineada con los Ejes</em> 
+        es una técnica geométrica donde cada objeto se encierra en un rectángulo cuyos bordes son paralelos 
+        a los ejes cartesianos <code>X</code> e <code>Y</code> (sin rotación).
+      </p>
+      <ul>
+        <li><strong>Condición de no colisión:</strong> Si existe separación en al menos un eje, los objetos no colisionan.</li>
+        <li>
+          <strong>Fórmula matemática booleana:</strong>
+          <code>A.x &lt; B.x + B.w &amp;&amp; A.x + A.w &gt; B.x &amp;&amp; A.y &lt; B.y + B.h &amp;&amp; A.y + A.h &gt; B.y</code>
+        </li>
+        <li><strong>Ventaja computacional:</strong> Su complejidad es <code>O(1)</code> con sólo 4 comparaciones escalares, haciéndola ultra veloz para videojuegos en tiempo real.</li>
+      </ul>
+    </article>
+
+    <!-- Tarjeta 2: Máquinas de Estados Finitos (FSM) -->
+    <article class="info-card">
+      <h3>🤖 2. Máquina de Estados Finitos (FSM)</h3>
+      <p>
+        Una <strong>FSM (Finite State Machine)</strong> es un patrón de diseño fundamental en la Inteligencia Artificial (IA) de videojuegos para modelar el comportamiento de agentes:
+      </p>
+      <ul>
+        <li>
+          <span class="state-badge state-patrol">PATRULLAJE</span> 
+          El insecto ingresa por los extremos laterales y calcula el vector hacia el cultivo más próximo.
+        </li>
+        <li>
+          <strong>Transición:</strong> Al dispararse el evento de colisión AABB con un cultivo, cambia inmediatamente a:
+        </li>
+        <li>
+          <span class="state-badge state-feed">ALIMENTACION</span> 
+          El insecto anula su velocidad lateral (<code>vx = 0</code>) e interactúa restando puntos a la variable global <code>NutrientesDelCultivo</code>.
+        </li>
+        <li>
+          <strong>Beneficio:</strong> Evita código espagueti con anidaciones complejas, garantizando que el agente solo ejecute la lógica de su estado activo.
+        </li>
+      </ul>
+    </article>
+
+  </section>
+
+  <footer>
+    <p>Proyecto Pedagógico de Desarrollo de Videojuegos 2D &copy; El Conejo Guardián de la Huerta</p>
+  </footer>
+
+  <!-- Lógica y Motor del Juego -->
+  <script src="main.js"></script>
+</body>
+</html>
