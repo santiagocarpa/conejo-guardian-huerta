@@ -2,9 +2,11 @@
 
 **Videojuego Educativo Ecológico 2D en HTML5 Canvas y JavaScript**
 
-Un videojuego pedagógico que enseña conceptos fundamentales de ciencias de la computación, física matemática para videojuegos y agroecología mediante el control biológico de plagas sin químicos.
+> 🌐 **Jugar online directamente en el navegador:**  
+> 👉 **[https://santiagocarpa.github.io/conejo-guardian-huerta/](https://santiagocarpa.github.io/conejo-guardian-huerta/)**
 
 ---
+
 
 ## 🎮 Descripción del Juego
 
