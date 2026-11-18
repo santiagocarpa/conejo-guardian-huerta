@@ -2014,30 +2014,43 @@ function render() {
 // ============================================================================
 function updateHUD() {
   const percentage = Math.max(0, Math.min(100, Math.round(NutrientesDelCultivo)));
-  nutrientFill.style.width = `${percentage}%`;
-  nutrientText.textContent = `${percentage}%`;
-
-  if (percentage > 50) {
-    nutrientFill.style.background = 'linear-gradient(90deg, #ecc94b 0%, #48bb78 70%, #38a169 100%)';
-  } else if (percentage > 25) {
-    nutrientFill.style.background = 'linear-gradient(90deg, #ed8936 0%, #ecc94b 100%)';
-  } else {
-    nutrientFill.style.background = 'linear-gradient(90deg, #e53e3e 0%, #f56565 100%)';
+  if (nutrientFill) {
+    nutrientFill.style.width = `${percentage}%`;
+    if (percentage > 50) {
+      nutrientFill.style.background = 'linear-gradient(90deg, #ecc94b 0%, #48bb78 70%, #38a169 100%)';
+    } else if (percentage > 25) {
+      nutrientFill.style.background = 'linear-gradient(90deg, #ed8936 0%, #ecc94b 100%)';
+    } else {
+      nutrientFill.style.background = 'linear-gradient(90deg, #e53e3e 0%, #f56565 100%)';
+    }
   }
+  if (nutrientText) nutrientText.textContent = `${percentage}%`;
 
-  waveText.textContent = `🌊 ${WaveManager.currentWave}`;
+  if (waveText) waveText.textContent = `🌊 ${WaveManager.currentWave}`;
 
   const remaining = Math.max(0, WaveManager.totalEnemiesInWave - WaveManager.defeatedInWave);
-  remainingPestsElem.textContent = `🎯 ${remaining}`;
-  repelledPestsElem.textContent = `🛡️ ${GameState.scoreRepelled}`;
+  if (remainingPestsElem) remainingPestsElem.textContent = `🎯 ${remaining}`;
+  if (repelledPestsElem) repelledPestsElem.textContent = `🛡️ ${GameState.scoreRepelled}`;
+
+  // Compatibilidad retroactiva si algún elemento activePests existe
+  const activePestsFallback = document.getElementById('activePests');
+  if (activePestsFallback) {
+    const activeCount = (insects ? insects.filter(i => i.state !== 'HUYENDO').length : 0) +
+                        (flyingPests ? flyingPests.filter(f => f.state !== 'HUYENDO').length : 0);
+    activePestsFallback.textContent = `🐛 ${activeCount}`;
+  }
 }
 
 function triggerGameOver() {
   GameState.isGameOver = true;
-  overlayTitle.textContent = '¡Huerta Sin Nutrientes!';
-  overlayTitle.className = 'overlay-title loss';
-  overlayDesc.textContent = `Los insectos y aves consumieron las reservas del suelo en la Oleada ${WaveManager.currentWave}. Lograste ahuyentar a ${GameState.scoreRepelled} plagas ecológicamente.`;
-  gameOverScreen.classList.add('active');
+  if (overlayTitle) {
+    overlayTitle.textContent = '¡Huerta Sin Nutrientes!';
+    overlayTitle.className = 'overlay-title loss';
+  }
+  if (overlayDesc) {
+    overlayDesc.textContent = `Los insectos y aves consumieron las reservas del suelo en la Oleada ${WaveManager.currentWave}. Lograste ahuyentar a ${GameState.scoreRepelled} plagas ecológicamente.`;
+  }
+  if (gameOverScreen) gameOverScreen.classList.add('active');
 }
 
 // ============================================================================
