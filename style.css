@@ -134,6 +134,28 @@ h1 {
   gap: 6px;
 }
 
+#weatherText {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ecc94b;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+#weatherText.weather-sun {
+  color: #ecc94b;
+  text-shadow: 0 0 8px rgba(236, 201, 75, 0.4);
+}
+
+#weatherText.weather-rain {
+  color: #63b3ed;
+  text-shadow: 0 0 10px rgba(99, 179, 237, 0.5);
+}
+
+#weatherText.weather-cloudy {
+  color: #cbd5e0;
+  text-shadow: 0 0 6px rgba(203, 213, 224, 0.3);
+}
+
 /* Barra de Nutrientes */
 .nutrient-container {
   display: flex;

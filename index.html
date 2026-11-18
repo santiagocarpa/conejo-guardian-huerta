@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>El Conejo Guardián de la Huerta - Edición HD</title>
-  <meta name="description" content="Videojuego 2D agroecológico: defiende los cultivos de insectos y cuervos voladores con habilidades desbloqueables y oleadas progresivas en HD.">
-  <link rel="stylesheet" href="style.css?v=20261118b">
+  <title>El Conejo Guardián de la Huerta - Edición Clima & Oleadas HD</title>
+  <meta name="description" content="Videojuego 2D agroecológico: defiende los cultivos de insectos y cuervos con sistema de clima dinámico (lluvia regeneradora, nublado y sol) y oleadas equilibradas.">
+  <link rel="stylesheet" href="style.css?v=20261118c">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
   <header>
     <div class="badge">🌱 Guardián Agroecológico 2D</div>
     <h1>El Conejo Guardián de la Huerta</h1>
-    <p class="subtitle">Protege los cultivos de las plagas terrestres y voladoras sin pesticidas. Supera oleadas y desbloquea habilidades.</p>
+    <p class="subtitle">Protege los cultivos de las plagas terrestres y voladoras. Aprovecha la lluvia para regenerar plantas y prepárate entre oleadas.</p>
   </header>
 
   <!-- Contenedor Principal del Juego -->
@@ -31,6 +31,12 @@
           <div class="nutrient-bar-fill" id="nutrientFill" style="width: 100%;"></div>
         </div>
         <span class="hud-value" id="nutrientText">100%</span>
+      </div>
+
+      <!-- Sistema de Clima Dinámico -->
+      <div class="hud-item">
+        <span class="hud-label">Clima Actual</span>
+        <span class="hud-value" id="weatherText">☀️ Soleado</span>
       </div>
 
       <!-- Oleada Actual -->
@@ -118,10 +124,10 @@
   </main>
 
   <footer>
-    <p>El Conejo Guardián de la Huerta &copy; Videojuego Agroecológico de Supervivencia y Oleadas</p>
+    <p>El Conejo Guardián de la Huerta &copy; Videojuego Agroecológico con Clima Dinámico y Supervivencia</p>
   </footer>
 
   <!-- Lógica y Motor del Juego con cache buster -->
-  <script src="main.js?v=20261118b"></script>
+  <script src="main.js?v=20261118c"></script>
 </body>
 </html>

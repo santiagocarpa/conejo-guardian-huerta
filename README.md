@@ -28,10 +28,16 @@ Al finalizar cada oleada con éxito, el ecosistema recompensa al guardián permi
 3. **🦅 Enemigos Voladores (Cuervos de Huerta)**:
    - Patrullan el cielo con aleteo animado, proyectan sombra en el suelo y descienden en picada para comerse los cultivos.
    - Se pueden interceptar saltando en el aire o con proyectiles de zanahoria.
-4. **🌊 Sistema de Oleadas con Dificultad Progresiva**:
-   - Oleadas con cuotas crecientes de plagas, mezcla de tipos terrestres y voladores, y velocidades incrementales.
-   - Indicadores en HUD: Oleada actual, plagas restantes y plagas controladas.
-5. **🃏 Sistema Roguelite: 3 Opciones al Final de Cada Ronda**:
+4. **🌦️ Sistema de Clima Dinámico**:
+   - ☀️ **Sol (Normal)**: Día brillante; comportamiento estándar de plagas terrestres y voladoras.
+   - 🌧️ **Lluvia Fértil**: Gotas de lluvia animadas y ondas de agua en el suelo; **regenera los nutrientes de las plantas (+2.2%/s)** continuamente.
+   - ☁️ **Nublado (Sin Aves)**: Cielo cubierto de nubes; **las aves voladoras NO aparecen** (se refugian en los árboles y no atacarán).
+5. **🌊 Sistema de Oleadas Equilibradas (FSM de 4 Fases)**:
+   - **Fase de Preparación (4 segundos)**: Cuenta regresiva animada en pantalla para que el jugador se posicione y conozca el clima antes del combate.
+   - **Fase de Combate**: Spawning gradual y espaciado de plagas con cuotas justas y equilibradas.
+   - **Fase de Celebración (2 segundos)**: Anuncio triunfal de oleada superada antes de abrir las recompensas.
+   - **Fase de Recompensa Roguelite**: Pausa estratégica para elegir 1 de 3 mejoras sin reinicios abruptos.
+6. **🃏 Sistema Roguelite: 3 Opciones al Final de Cada Ronda**:
    - Modal con 3 cartas aleatorias de un catálogo de 9 habilidades y atributos:
      - 🥕 **Zanahorias Arrojadizas**: Ataque a distancia.
      - ⚡ **Patas Ligeras**: +25% de velocidad de movimiento.

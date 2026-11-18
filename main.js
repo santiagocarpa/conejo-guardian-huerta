@@ -175,6 +175,20 @@ const AudioSys = {
     gain.connect(this.ctx.destination);
     osc.start();
     osc.stop(this.ctx.currentTime + 0.14);
+  },
+  playWeatherChange() {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(660, this.ctx.currentTime + 0.22);
+    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.25);
   }
 };
 
@@ -202,6 +216,7 @@ const gameWrapper = document.getElementById('gameWrapper');
 const canvasContainer = document.getElementById('canvasContainer');
 const nutrientFill = document.getElementById('nutrientFill');
 const nutrientText = document.getElementById('nutrientText');
+const weatherText = document.getElementById('weatherText');
 const waveText = document.getElementById('waveText');
 const remainingPestsElem = document.getElementById('remainingPests');
 const repelledPestsElem = document.getElementById('repelledPests');
@@ -1333,57 +1348,267 @@ class AllyGuardian {
 }
 
 // ============================================================================
-// 11. SISTEMA DE OLEADAS PROGRESIVAS (WAVE MANAGER)
+// 11. SISTEMA DE CLIMA DINÁMICO (WEATHER MANAGER)
 // ============================================================================
+/**
+ * Gestiona el clima agroecológico de la huerta:
+ * - 'SOL': Clima normal con sol radiante; comportamiento estándar de insectos y aves.
+ * - 'LLUVIA': Lluvia fértil que cae sobre el suelo y regenera los nutrientes de las plantas (+2.2%/s).
+ * - 'NUBLADO': Cielo cubierto de nubes densas; las aves no aparecen (se refugian en los árboles).
+ */
+const WeatherManager = {
+  currentWeather: 'SOL', // 'SOL', 'LLUVIA', 'NUBLADO'
+  rainDrops: [],
+  clouds: [],
+  regenTextTimer: 0,
+
+  init(width, height) {
+    // Inicializar partículas de lluvia
+    this.rainDrops = [];
+    for (let i = 0; i < 110; i++) {
+      this.rainDrops.push({
+        x: Math.random() * (width + 160) - 80,
+        y: Math.random() * height,
+        length: 12 + Math.random() * 14,
+        vy: 480 + Math.random() * 220,
+        vx: -50 - Math.random() * 30,
+        alpha: 0.35 + Math.random() * 0.45
+      });
+    }
+
+    // Inicializar nubes esponjosas en el cielo
+    this.clouds = [
+      { x: width * 0.08, y: 70, scale: 1.15, vx: 18 },
+      { x: width * 0.42, y: 110, scale: 0.9, vx: 24 },
+      { x: width * 0.78, y: 65, scale: 1.3, vx: 16 },
+      { x: -width * 0.25, y: 95, scale: 1.05, vx: 20 }
+    ];
+  },
+
+  setWeather(weatherType) {
+    this.currentWeather = weatherType;
+    AudioSys.playWeatherChange();
+    updateHUD();
+
+    if (weatherType === 'LLUVIA') {
+      particles.addText('🌧️ ¡Lluvia Fértil! Las plantas se regeneran con el agua.', canvas.width / 2, 130, '#63b3ed', 18);
+    } else if (weatherType === 'NUBLADO') {
+      particles.addText('☁️ ¡Cielo Nublado! Las aves se ocultan y no atacarán.', canvas.width / 2, 130, '#cbd5e0', 18);
+      // Si existía algún ave en pantalla, se retira inmediatamente
+      if (flyingPests && flyingPests.length > 0) {
+        flyingPests.forEach(fly => {
+          if (fly.state !== 'HUYENDO') {
+            fly.scareAway(1);
+          }
+        });
+      }
+    } else {
+      particles.addText('☀️ ¡Día Soleado! La huerta brilla con luz natural.', canvas.width / 2, 130, '#ecc94b', 18);
+    }
+  },
+
+  // Asignar el clima correspondiente para cada oleada
+  getWeatherForWave(waveNum) {
+    // Oleada 1: Sol (normal / bienvenida)
+    // Oleada 2: Nublado (introduce mecánica: ¡sin aves voladoras!)
+    // Oleada 3: Lluvia (introduce mecánica: ¡regeneración continua de nutrientes!)
+    // Oleada 4+: Rotación dinámica
+    const cycle = ['SOL', 'NUBLADO', 'LLUVIA', 'SOL', 'LLUVIA', 'NUBLADO'];
+    return cycle[(waveNum - 1) % cycle.length];
+  },
+
+  update(dt, width, height) {
+    // Desplazamiento horizontal continuo de nubes
+    for (const c of this.clouds) {
+      c.x += c.vx * dt;
+      if (c.x > width + 220) {
+        c.x = -220;
+      }
+    }
+
+    // Efectos específicos de LLUVIA
+    if (this.currentWeather === 'LLUVIA') {
+      // 1. Física de gotas de lluvia
+      for (const d of this.rainDrops) {
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+
+        // Salpicadura al chocar con el plano del suelo
+        if (d.y >= GROUND_Y) {
+          if (Math.random() < 0.22) {
+            particles.addShockwave(d.x, GROUND_Y, 7 + Math.random() * 8, 'rgba(147, 197, 253, 0.55)');
+          }
+          d.y = -15;
+          d.x = Math.random() * (width + 160) - 80;
+        }
+      }
+
+      // 2. REGENERACIÓN DE PLANTAS: El agua de lluvia regenera los nutrientes
+      if (NutrientesDelCultivo < 100) {
+        NutrientesDelCultivo += 2.2 * dt;
+        if (NutrientesDelCultivo > 100) NutrientesDelCultivo = 100;
+
+        this.regenTextTimer += dt;
+        if (this.regenTextTimer >= 2.8) {
+          this.regenTextTimer = 0;
+          particles.addText('💧 ¡Lluvia regenerando huerta! +2.2%/s', width / 2, GROUND_Y - 45, '#63b3ed', 15);
+        }
+      }
+    }
+  },
+
+  draw(context, width, height) {
+    // Dibujar nubes en clima NUBLADO o LLUVIA
+    if (this.currentWeather === 'NUBLADO' || this.currentWeather === 'LLUVIA') {
+      context.save();
+      const cloudColor = (this.currentWeather === 'LLUVIA') ? 'rgba(74, 85, 104, 0.65)' : 'rgba(226, 232, 240, 0.8)';
+      context.fillStyle = cloudColor;
+
+      for (const c of this.clouds) {
+        this.drawFluffyCloud(context, c.x, c.y, c.scale);
+      }
+      context.restore();
+    }
+
+    // Dibujar gotas de lluvia en clima LLUVIA
+    if (this.currentWeather === 'LLUVIA') {
+      context.save();
+      context.strokeStyle = 'rgba(191, 219, 254, 0.75)';
+      context.lineWidth = 1.8;
+
+      for (const d of this.rainDrops) {
+        context.beginPath();
+        context.moveTo(d.x, d.y);
+        context.lineTo(d.x + (d.vx * 0.032), d.y + (d.vy * 0.032));
+        context.stroke();
+      }
+      context.restore();
+    }
+  },
+
+  drawFluffyCloud(context, x, y, scale = 1.0) {
+    context.beginPath();
+    context.arc(x, y, 32 * scale, 0, Math.PI * 2);
+    context.arc(x + 28 * scale, y - 14 * scale, 36 * scale, 0, Math.PI * 2);
+    context.arc(x + 64 * scale, y - 10 * scale, 30 * scale, 0, Math.PI * 2);
+    context.arc(x + 92 * scale, y, 28 * scale, 0, Math.PI * 2);
+    context.arc(x + 46 * scale, y + 12 * scale, 32 * scale, 0, Math.PI * 2);
+    context.closePath();
+    context.fill();
+  }
+};
+
+// ============================================================================
+// 12. SISTEMA DE OLEADAS EQUILIBRADAS (WAVE MANAGER FSM)
+// ============================================================================
+/**
+ * Máquina de estados robusta para las oleadas:
+ * - 'PREPARATION': 4 segundos de descanso con cuenta regresiva para que el jugador se posicione y conozca el clima.
+ * - 'SPAWNING': Genera enemigos espaciados con intervalos justos.
+ * - 'FIGHTING': Espera a que el jugador derrote a todas las plagas de la oleada.
+ * - 'VICTORY': 2 segundos de celebración con cartel antes de abrir las 3 mejoras.
+ * - 'UPGRADE': Pausado mientras el jugador elige su recompensa.
+ */
 const WaveManager = {
   currentWave: 1,
   totalEnemiesInWave: 4,
   spawnedInWave: 0,
   defeatedInWave: 0,
   spawnTimer: 0,
-  spawnInterval: 2.2,
-  bannerTimer: 0,
-  bannerText: '',
+  spawnInterval: 2.6,
 
-  startWave(waveNum) {
+  state: 'PREPARATION', // 'PREPARATION', 'SPAWNING', 'FIGHTING', 'VICTORY', 'UPGRADE'
+  prepTimer: 4.0,
+  victoryTimer: 0,
+
+  startFirstWave() {
+    this.currentWave = 1;
+    this.prepareWave(1);
+  },
+
+  prepareWave(waveNum) {
     this.currentWave = waveNum;
+    this.state = 'PREPARATION';
+    this.prepTimer = 4.0; // 4 segundos de intermisión garantizada
     this.spawnedInWave = 0;
     this.defeatedInWave = 0;
-    this.spawnTimer = 0.5; // Primer spawn rápido
+    this.spawnTimer = 0;
 
-    // Dificultad incremental: aumenta cantidad de enemigos y velocidad
-    this.totalEnemiesInWave = 3 + waveNum * 2;
-    this.spawnInterval = Math.max(1.2, 2.4 - waveNum * 0.12);
+    // Dificultad incremental justa:
+    // Oleada 1: 4 plagas
+    // Oleada 2: 6 plagas
+    // Oleada 3: 8 plagas
+    // Oleada 4: 10 plagas, etc.
+    this.totalEnemiesInWave = 4 + (waveNum - 1) * 2;
+    this.spawnInterval = Math.max(1.8, 2.8 - (waveNum - 1) * 0.1);
 
-    GameState.enemySpeedMult = 1.0 + (waveNum - 1) * 0.05;
+    // Velocidad progresiva
+    GameState.enemySpeedMult = 1.0 + (waveNum - 1) * 0.04;
 
-    this.bannerText = `¡OLEADA ${this.currentWave}!`;
-    this.bannerTimer = 2.4;
+    // Establecer el clima de la oleada
+    const nextWeather = WeatherManager.getWeatherForWave(waveNum);
+    WeatherManager.setWeather(nextWeather);
+
     AudioSys.playWaveStart();
-
     updateHUD();
   },
 
   update(dt, cropsList, insectsList, flyingList) {
-    if (this.bannerTimer > 0) {
-      this.bannerTimer -= dt;
+    // ------------------------------------------------------------------------
+    // FASE 1: PREPARACIÓN (INTERMISIÓN DE 4 SEGUNDOS)
+    // ------------------------------------------------------------------------
+    if (this.state === 'PREPARATION') {
+      this.prepTimer -= dt;
+      if (this.prepTimer <= 0) {
+        this.state = 'SPAWNING';
+        this.spawnTimer = 0.6; // El primer enemigo aparece poco después
+        particles.addText('¡A DEFENDER LA HUERTA!', canvas.width / 2, canvas.height * 0.36, '#f56565', 26);
+      }
+      return; // No spawnea ni chequea victoria durante la preparación
     }
 
-    // Si aún quedan enemigos por spawnear en la oleada
-    if (this.spawnedInWave < this.totalEnemiesInWave) {
+    // ------------------------------------------------------------------------
+    // FASE 2: SPAWNING (Generando plagas con ritmo constante)
+    // ------------------------------------------------------------------------
+    if (this.state === 'SPAWNING') {
       this.spawnTimer += dt;
       if (this.spawnTimer >= this.spawnInterval) {
         this.spawnTimer = 0;
         this.spawnNextEnemy(cropsList, insectsList, flyingList);
+
+        if (this.spawnedInWave >= this.totalEnemiesInWave) {
+          this.state = 'FIGHTING';
+        }
       }
     }
 
-    // Verificar si la oleada concluyó (todos spawneados y todos espantados/eliminados)
-    const activeGround = insectsList.filter(i => i.state !== 'HUYENDO').length;
-    const activeFlying = flyingList.filter(f => f.state !== 'HUYENDO').length;
+    // ------------------------------------------------------------------------
+    // FASE 3: FIGHTING (Combatiendo las plagas restantes)
+    // ------------------------------------------------------------------------
+    if (this.state === 'FIGHTING') {
+      const activeGround = insectsList.filter(i => i.state !== 'HUYENDO').length;
+      const activeFlying = flyingList.filter(f => f.state !== 'HUYENDO').length;
 
-    if (this.spawnedInWave >= this.totalEnemiesInWave && activeGround === 0 && activeFlying === 0) {
-      this.completeWave();
+      // La oleada se supera cuando no queda ningún enemigo activo y todos fueron repelidos
+      if (this.spawnedInWave >= this.totalEnemiesInWave && activeGround === 0 && activeFlying === 0) {
+        this.state = 'VICTORY';
+        this.victoryTimer = 2.0; // 2 segundos de celebración
+        AudioSys.playUpgrade();
+        particles.addText('¡OLEADA SUPERADA!', canvas.width / 2, canvas.height / 2 - 35, '#fef08a', 32);
+        particles.addShockwave(canvas.width / 2, canvas.height / 2, 160, '#ecc94b');
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // FASE 4: VICTORIA (Celebración antes de desplegar las 3 mejoras)
+    // ------------------------------------------------------------------------
+    if (this.state === 'VICTORY') {
+      this.victoryTimer -= dt;
+      if (this.victoryTimer <= 0) {
+        this.state = 'UPGRADE';
+        GameState.isPausedForUpgrade = true;
+        UpgradeManager.presentUpgrades();
+      }
     }
   },
 
@@ -1391,13 +1616,11 @@ const WaveManager = {
     this.spawnedInWave++;
     const spawnSide = Math.random() > 0.5 ? 'LEFT' : 'RIGHT';
 
-    // Proporción de voladores: se introducen a partir de la oleada 2
-    let spawnFlyingChance = 0;
-    if (this.currentWave >= 2) {
-      spawnFlyingChance = Math.min(0.55, 0.25 + (this.currentWave - 2) * 0.08);
-    }
+    // Regla crucial: En clima NUBLADO NO aparecen aves voladoras
+    let allowFlying = (WeatherManager.currentWeather !== 'NUBLADO') && (this.currentWave >= 2);
+    let spawnFlyingChance = allowFlying ? Math.min(0.48, 0.25 + (this.currentWave - 2) * 0.08) : 0;
 
-    if (Math.random() < spawnFlyingChance) {
+    if (allowFlying && Math.random() < spawnFlyingChance) {
       flyingList.push(new FlyingPest(spawnSide, cropsList));
     } else {
       insectsList.push(new Insect(spawnSide, cropsList));
@@ -1411,39 +1634,66 @@ const WaveManager = {
     updateHUD();
   },
 
-  completeWave() {
-    GameState.isPausedForUpgrade = true;
-    AudioSys.playUpgrade();
-    particles.addText('¡Oleada Superada!', canvas.width / 2, canvas.height / 2 - 40, '#fef08a', 28);
-    UpgradeManager.presentUpgrades();
-  },
-
   drawBanner(context) {
-    if (this.bannerTimer > 0) {
-      context.save();
-      const alpha = Math.min(1, this.bannerTimer / 0.5);
-      context.globalAlpha = alpha;
+    context.save();
+
+    // Banner animado durante PREPARACIÓN
+    if (this.state === 'PREPARATION') {
+      const remainingSec = Math.ceil(this.prepTimer);
+      const bannerY = canvas.height * 0.22;
+      const bannerHeight = 115;
+
+      // Caja de banner con fondo translúcido
+      context.fillStyle = 'rgba(8, 22, 14, 0.9)';
+      context.fillRect(0, bannerY, canvas.width, bannerHeight);
+      context.strokeStyle = '#48bb78';
+      context.lineWidth = 2.5;
+      context.strokeRect(0, bannerY, canvas.width, bannerHeight);
+
       context.textAlign = 'center';
 
-      // Fondo del banner
-      context.fillStyle = 'rgba(8, 24, 14, 0.85)';
-      context.fillRect(0, canvas.height * 0.28, canvas.width, 80);
-      context.strokeStyle = '#48bb78';
-      context.lineWidth = 2;
-      context.strokeRect(0, canvas.height * 0.28, canvas.width, 80);
-
-      // Texto de Oleada
-      context.font = 'bold 36px "Segoe UI", sans-serif';
+      // Título de Oleada
+      context.font = 'bold 32px "Segoe UI", sans-serif';
       context.fillStyle = '#fef08a';
-      context.fillText(this.bannerText, canvas.width / 2, canvas.height * 0.28 + 48);
+      context.fillText(`¡OLEADA ${this.currentWave}!`, canvas.width / 2, bannerY + 38);
 
-      context.restore();
+      // Descripción del clima y cuenta regresiva
+      context.font = 'bold 17px "Segoe UI", sans-serif';
+      let weatherDesc = '';
+      if (WeatherManager.currentWeather === 'LLUVIA') {
+        weatherDesc = '🌧️ Lluvia Fértil (Las plantas se regeneran)';
+      } else if (WeatherManager.currentWeather === 'NUBLADO') {
+        weatherDesc = '☁️ Nublado (¡Sin aves voladoras!)';
+      } else {
+        weatherDesc = '☀️ Soleado (Clima normal)';
+      }
+
+      context.fillStyle = '#a7f3d0';
+      context.fillText(`${weatherDesc}  —  Comienza en: ${remainingSec}s`, canvas.width / 2, bannerY + 72);
+
+      // Barra de progreso de la cuenta regresiva
+      const prog = Math.max(0, this.prepTimer / 4.0);
+      context.fillStyle = '#48bb78';
+      context.fillRect(canvas.width / 2 - 130, bannerY + 88, 260 * prog, 6);
     }
+
+    // Banner de VICTORIA
+    if (this.state === 'VICTORY') {
+      context.textAlign = 'center';
+      context.font = 'bold 36px "Segoe UI", sans-serif';
+      context.fillStyle = '#ecc94b';
+      context.fillText(`✨ ¡OLEADA ${this.currentWave} SUPERADA! ✨`, canvas.width / 2, canvas.height * 0.32);
+      context.font = '18px "Segoe UI", sans-serif';
+      context.fillStyle = '#e2f1e7';
+      context.fillText('Reclamando recompensas del ecosistema...', canvas.width / 2, canvas.height * 0.32 + 36);
+    }
+
+    context.restore();
   }
 };
 
 // ============================================================================
-// 12. SISTEMA DE MEJORAS Y HABILIDADES ROGUELITE (UPGRADE MANAGER)
+// 13. SISTEMA DE MEJORAS Y HABILIDADES ROGUELITE (UPGRADE MANAGER)
 // ============================================================================
 const UpgradeManager = {
   // Catálogo completo de habilidades y atributos
@@ -1562,7 +1812,6 @@ const UpgradeManager = {
   ],
 
   presentUpgrades() {
-    // Mezclar y elegir 3 opciones distintas
     const shuffled = [...this.upgradesCatalog].sort(() => 0.5 - Math.random());
     const selected3 = shuffled.slice(0, 3);
 
@@ -1599,44 +1848,68 @@ const UpgradeManager = {
     AudioSys.playUpgrade();
     particles.addText(`¡${upgrade.title}!`, canvas.width / 2, canvas.height / 2, '#48bb78', 24);
 
-    // Iniciar la siguiente ronda
-    setTimeout(() => {
-      WaveManager.startWave(WaveManager.currentWave + 1);
-    }, 800);
+    // Iniciar limpia y ordenadamente la preparación de la siguiente ronda (4 segundos de respiro)
+    WaveManager.prepareWave(WaveManager.currentWave + 1);
   }
 };
 
 // ============================================================================
-// 13. ESCENARIO Y FONDO EN HD
+// 14. ESCENARIO Y FONDO EN HD CON CLIMA DINÁMICO
 // ============================================================================
 function drawScenicBackground(context, width, height) {
-  // 1. Cielo degradado matutino
+  // 1. Cielo según el clima activo
   const skyGrad = context.createLinearGradient(0, 0, 0, GROUND_Y);
-  skyGrad.addColorStop(0, '#5bb883');
-  skyGrad.addColorStop(0.4, '#87dfa7');
-  skyGrad.addColorStop(1, '#c6f6d5');
+
+  if (WeatherManager.currentWeather === 'LLUVIA') {
+    // Cielo de lluvia: azul-pizarra oscuro tormentoso
+    skyGrad.addColorStop(0, '#2d4b3b');
+    skyGrad.addColorStop(0.4, '#406753');
+    skyGrad.addColorStop(1, '#689680');
+  } else if (WeatherManager.currentWeather === 'NUBLADO') {
+    // Cielo nublado: gris plata suave con toques celestes
+    skyGrad.addColorStop(0, '#4a5568');
+    skyGrad.addColorStop(0.4, '#718096');
+    skyGrad.addColorStop(1, '#cbd5e0');
+  } else {
+    // Cielo soleado: verde-esmeralda y celeste radiante
+    skyGrad.addColorStop(0, '#5bb883');
+    skyGrad.addColorStop(0.4, '#87dfa7');
+    skyGrad.addColorStop(1, '#c6f6d5');
+  }
+
   context.fillStyle = skyGrad;
   context.fillRect(0, 0, width, height);
 
-  // 2. Sol suave
+  // 2. Sol (con visibilidad según el clima)
+  context.save();
+  if (WeatherManager.currentWeather === 'LLUVIA') {
+    context.globalAlpha = 0.2; // Sol apenas visible bajo la lluvia
+  } else if (WeatherManager.currentWeather === 'NUBLADO') {
+    context.globalAlpha = 0.35; // Sol velado por nubes
+  } else {
+    context.globalAlpha = 1.0; // Sol radiante
+  }
+
   context.fillStyle = 'rgba(254, 240, 138, 0.85)';
   context.beginPath();
   context.arc(width - 110, 85, 48, 0, Math.PI * 2);
   context.fill();
 
-  // Rayos suaves
-  context.fillStyle = 'rgba(254, 240, 138, 0.2)';
-  context.beginPath();
-  context.arc(width - 110, 85, 75, 0, Math.PI * 2);
-  context.fill();
+  if (WeatherManager.currentWeather === 'SOL') {
+    context.fillStyle = 'rgba(254, 240, 138, 0.2)';
+    context.beginPath();
+    context.arc(width - 110, 85, 75, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
 
   // 3. Colinas verdes lejanas
-  context.fillStyle = '#48bb78';
+  context.fillStyle = (WeatherManager.currentWeather === 'LLUVIA') ? '#36694e' : '#48bb78';
   context.beginPath();
   context.ellipse(width * 0.25, GROUND_Y - 90, width * 0.35, 110, 0, 0, Math.PI * 2);
   context.fill();
 
-  context.fillStyle = '#38a169';
+  context.fillStyle = (WeatherManager.currentWeather === 'LLUVIA') ? '#28533d' : '#38a169';
   context.beginPath();
   context.ellipse(width * 0.75, GROUND_Y - 80, width * 0.45, 120, 0, 0, Math.PI * 2);
   context.fill();
@@ -1664,7 +1937,7 @@ function drawScenicBackground(context, width, height) {
   context.fillRect(0, GROUND_Y, width, height - GROUND_Y);
 
   // Línea de césped fértil
-  context.fillStyle = '#2f855a';
+  context.fillStyle = (WeatherManager.currentWeather === 'LLUVIA') ? '#276749' : '#2f855a';
   context.fillRect(0, GROUND_Y - 5, width, 10);
 }
 
@@ -1767,6 +2040,11 @@ function setCanvasResolution(mode) {
     rabbit.baseY = GROUND_Y - rabbit.height;
     if (!rabbit.isJumping) rabbit.y = rabbit.baseY;
   }
+
+  // Reinicializar partículas de clima con las nuevas dimensiones
+  if (typeof WeatherManager !== 'undefined') {
+    WeatherManager.init(canvas.width, canvas.height);
+  }
 }
 
 function toggleFullscreen() {
@@ -1841,8 +2119,13 @@ function setupGameEntities() {
   gameOverScreen.classList.remove('active');
   upgradeScreen.classList.remove('active');
 
-  // Iniciar la Oleada 1
-  WaveManager.startWave(1);
+  // Inicializar clima dinámico
+  if (typeof WeatherManager !== 'undefined') {
+    WeatherManager.init(canvas.width, canvas.height);
+  }
+
+  // Iniciar la Oleada 1 con 4 segundos de preparación
+  WaveManager.startFirstWave();
 }
 
 // ============================================================================
@@ -1865,10 +2148,15 @@ function gameLoop(currentTimestamp) {
 }
 
 function update(dt) {
-  // Regeneración pasiva de nutrientes si está activa
+  // Regeneración pasiva de nutrientes si está activa por mejora
   if (GameState.passiveRegenRate > 0 && NutrientesDelCultivo < 100) {
     NutrientesDelCultivo += GameState.passiveRegenRate * dt;
     if (NutrientesDelCultivo > 100) NutrientesDelCultivo = 100;
+  }
+
+  // Actualizar clima dinámico (física de lluvia, nubes y regeneración por agua)
+  if (typeof WeatherManager !== 'undefined') {
+    WeatherManager.update(dt, canvas.width, canvas.height);
   }
 
   // Actualizar jugador
@@ -1971,41 +2259,46 @@ function update(dt) {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Fondo escénico HD
+  // 1. Fondo escénico HD (cielo según clima, sol y colinas)
   drawScenicBackground(ctx, canvas.width, canvas.height);
 
-  // Cultivos
+  // 2. Clima dinámico (nubes y lluvia sobre el cielo)
+  if (typeof WeatherManager !== 'undefined') {
+    WeatherManager.draw(ctx, canvas.width, canvas.height);
+  }
+
+  // 3. Cultivos
   for (const crop of crops) {
     crop.draw(ctx);
   }
 
-  // Insectos terrestres
+  // 4. Insectos terrestres
   for (const insect of insects) {
     insect.draw(ctx);
   }
 
-  // Proyectiles
+  // 5. Proyectiles
   for (const proj of projectiles) {
     proj.draw(ctx);
   }
 
-  // Conejo Guardián
+  // 6. Conejo Guardián
   rabbit.draw(ctx);
 
-  // Enemigos voladores
+  // 7. Enemigos voladores
   for (const fly of flyingPests) {
     fly.draw(ctx);
   }
 
-  // Aliados
+  // 8. Aliados
   for (const ally of allies) {
     ally.draw(ctx);
   }
 
-  // Partículas y textos flotantes
+  // 9. Partículas y textos flotantes
   particles.draw(ctx);
 
-  // Banner de Oleada
+  // 10. Banner de Oleada
   WaveManager.drawBanner(ctx);
 }
 
@@ -2025,6 +2318,20 @@ function updateHUD() {
     }
   }
   if (nutrientText) nutrientText.textContent = `${percentage}%`;
+
+  // Actualizar indicador de clima en el HUD
+  if (weatherText && typeof WeatherManager !== 'undefined') {
+    if (WeatherManager.currentWeather === 'LLUVIA') {
+      weatherText.textContent = '🌧️ Lluvia (+Regen)';
+      weatherText.className = 'hud-value weather-rain';
+    } else if (WeatherManager.currentWeather === 'NUBLADO') {
+      weatherText.textContent = '☁️ Nublado (Sin Aves)';
+      weatherText.className = 'hud-value weather-cloudy';
+    } else {
+      weatherText.textContent = '☀️ Soleado';
+      weatherText.className = 'hud-value weather-sun';
+    }
+  }
 
   if (waveText) waveText.textContent = `🌊 ${WaveManager.currentWave}`;
 
