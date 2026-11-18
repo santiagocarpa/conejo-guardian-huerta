@@ -1,64 +1,62 @@
-# 🥕 El Conejo Guardián de la Huerta
+# 🥕 El Conejo Guardián de la Huerta (Edición HD)
 
-**Videojuego Educativo Ecológico 2D en HTML5 Canvas y JavaScript**
+**Videojuego de Supervivencia Agroecológica 2D en HTML5 Canvas y JavaScript**
 
 > 🌐 **Jugar online directamente en el navegador:**  
 > 👉 **[https://santiagocarpa.github.io/conejo-guardian-huerta/](https://santiagocarpa.github.io/conejo-guardian-huerta/)**
 
 ---
 
-
 ## 🎮 Descripción del Juego
 
-El jugador encarna a un **Conejo Guardián** que custodia una huerta orgánica de vegetales (zanahorias). Periódicamente, insectos invasores ingresan por los costados para consumir los nutrientes del cultivo.
+El jugador encarna a un **Conejo Guardián** que custodia una huerta orgánica de vegetales (zanahorias). En esta nueva versión HD, la huerta es asediada tanto por **insectos terrestres** como por **cuervos y aves voladoras**.
 
-El jugador debe desplazarse rápidamente y saltar para ahuyentar a las plagas mediante **control biológico**, evitando que la variable global de nutrientes de la huerta caiga a 0%.
+El objetivo es resistir un **sistema de oleadas progresivas**, espantando a las plagas mediante control biológico, proyectiles y habilidades desbloqueables antes de que agoten los nutrientes de la huerta.
+
+Al finalizar cada oleada con éxito, el ecosistema recompensa al guardián permitiéndole **elegir 1 de 3 habilidades o atributos aleatorios** (estilo Roguelite).
 
 ---
 
-## 🚀 Conceptos Técnicos y Pedagógicos
+## ✨ Nuevas Características Implementadas
 
-### 1. Game Loop con `requestAnimationFrame` y `deltaTime`
-- **Sincronización Vertical (V-Sync):** El ciclo de juego se ejecuta acoplado a la tasa de refresco del monitor mediante `requestAnimationFrame`.
-- **Independencia de Tasa de Cuadros:** Los desplazamientos y temporizadores se normalizan multiplicando las velocidades por `deltaTime` (segundos transcurridos entre cuadros), garantizando física idéntica en cualquier dispositivo.
-
-### 2. Detección de Colisiones AABB (*Axis-Aligned Bounding Box*)
-- **Física de Cajas Alineadas:** Algoritmo de complejidad $O(1)$ basado en el Teorema de Ejes Separadores simplificado para rectángulos 2D ortogonales.
-- **Condición Booleana:**
-  ```javascript
-  function checkCollisionAABB(rectA, rectB) {
-    return (
-      rectA.x < rectB.x + rectB.width &&
-      rectA.x + rectA.width > rectB.x &&
-      rectA.y < rectB.y + rectB.height &&
-      rectA.y + rectA.height > rectB.y
-    );
-  }
-  ```
-
-### 3. Máquina de Estados Finitos (FSM)
-La clase `Insect` modela el comportamiento de las plagas mediante una FSM predecible y extensible:
-- **`PATRULLAJE`:** El insecto ingresa desde los laterales, localiza el cultivo más cercano y avanza hacia él.
-- **Transición por Colisión AABB:** Al colisionar con una planta, cambia inmediatamente al estado `ALIMENTACION`.
-- **`ALIMENTACION`:** Anula su velocidad horizontal (`vx = 0`), reproduce animación de masticado y descuenta puntos de la variable global `NutrientesDelCultivo`.
-- **`HUYENDO`:** Si el conejo guardián colisiona con el insecto, activa una transición de huida rápida fuera de la pantalla.
-
-### 4. Sistema de Audio Procedural
-- Construido con la API nativa de **Web Audio** (`AudioContext`). Genera sonidos en tiempo real (saltos, masticado, espanto de plagas) sin necesidad de cargar archivos de audio externos.
-
-### 5. Herramienta Didáctica en Pantalla
-- Incluye el interruptor **"Modo Visualizador AABB & FSM"** para renderizar las cajas de colisión y los rótulos de estado en tiempo real sobre el lienzo.
+1. **📺 Modo HD y Pantalla Completa (720x1270 / 1270x720)**:
+   - Botón de **Pantalla Completa** con escalado nítido.
+   - Alternador dinámico entre formato panorámico (**1270×720**) y vertical móvil (**720×1270**).
+2. **⏱️ Cooldown de Ataque en Enemigos**:
+   - Barra de recarga visual sobre los insectos y aves cuando están consumiendo los vegetales.
+   - Brinda tiempo de reacción al jugador antes de que se produzca el daño.
+3. **🦅 Enemigos Voladores (Cuervos de Huerta)**:
+   - Patrullan el cielo con aleteo animado, proyectan sombra en el suelo y descienden en picada para comerse los cultivos.
+   - Se pueden interceptar saltando en el aire o con proyectiles de zanahoria.
+4. **🌊 Sistema de Oleadas con Dificultad Progresiva**:
+   - Oleadas con cuotas crecientes de plagas, mezcla de tipos terrestres y voladores, y velocidades incrementales.
+   - Indicadores en HUD: Oleada actual, plagas restantes y plagas controladas.
+5. **🃏 Sistema Roguelite: 3 Opciones al Final de Cada Ronda**:
+   - Modal con 3 cartas aleatorias de un catálogo de 9 habilidades y atributos:
+     - 🥕 **Zanahorias Arrojadizas**: Ataque a distancia.
+     - ⚡ **Patas Ligeras**: +25% de velocidad de movimiento.
+     - 🦘 **Salto Acrobático**: +30% de impulso de salto.
+     - 📢 **Rugido Territorial**: +40% de área de espanto y onda de choque.
+     - 💧 **Compost Revitalizante**: +30% de nutrientes y regeneración pasiva.
+     - 🛡️ **Malla Anti-Plagas**: Escudos protectores que absorben ataques en los cultivos.
+     - ⏱️ **Repelente Herbal**: Aumenta el cooldown enemigo (+45%) y reduce su velocidad.
+     - 💨 **Carrera Rápida (Dash)**: Impulso de aceleración con la tecla Shift.
+     - 🐝 **Abeja Guardiana**: Aliado biológico que patrulla y ahuyenta plagas automáticamente.
 
 ---
 
 ## 🕹️ Controles
 
-| Tecla | Acción |
+| Tecla / Control | Acción |
 | :--- | :--- |
-| **`←` / `A`** | Moverse a la Izquierda |
-| **`→` / `D`** | Moverse a la Derecha |
-| **`Espacio` / `↑` / `W`** | Saltar / Ahuyentar plagas |
-| **Checkbox HUD** | Alternar Modo Visualizador AABB & FSM |
+| **`←` / `→`** o **`A` / `D`** | Moverse a los costados |
+| **`Espacio` / `↑` / `W`** | Saltar / Cazar aves en el aire |
+| **`J` / `Enter` / Clic** | Lanzar Zanahorias (con habilidad desbloqueada) |
+| **`Shift` / `K`** | Dash / Carrera rápida (con habilidad desbloqueada) |
+| **D-Pad & Botones Táctiles** | Controles en pantalla para dispositivos móviles |
+| **Botón Pantalla Completa** | Activar / Desactivar pantalla completa HD |
+| **Botón 1270x720 / 720x1270** | Alternar orientación Horizontal / Vertical HD |
+| **Checkbox Debug** | Modo visualizador de cajas de colisión y cooldowns |
 
 ---
 
@@ -66,28 +64,13 @@ La clase `Insect` modela el comportamiento de las plagas mediante una FSM predec
 
 ```text
 conejo-guardian-huerta/
-├── index.html     # Estructura semántica, Canvas y HUD educativo
-├── style.css      # Sistema de diseño agroecológico y Glassmorphism
-├── main.js        # Motor del juego, Game Loop, clases Rabbit, Crop, Insect (FSM) y AABB
-└── README.md      # Documentación pedagógica y guía de uso
+├── .github/workflows/deploy.yml  # Automatización de despliegue a GitHub Pages
+├── index.html                   # Interfaz semántica, HUD, modales y Canvas HD
+├── style.css                    # Estilos modernos, Glassmorphism, cartas y Fullscreen
+├── main.js                      # Motor del juego: oleadas, Roguelite, FSM, audio y física
+└── README.md                    # Documentación y guía de uso
 ```
 
 ---
 
-## 💻 Cómo Ejecutarlo
-
-1. Clona o descarga este repositorio:
-   ```bash
-   git clone https://github.com/santiagocarpa/conejo-guardian-huerta.git
-   ```
-2. Abre directamente `index.html` en cualquier navegador web moderno (Chrome, Firefox, Safari, Edge).
-3. O inicia un servidor HTTP local:
-   ```bash
-   # Con Python
-   python -m http.server 8080
-   ```
-   Y accede a `http://localhost:8080`.
-
----
-
-Desarrollado como proyecto educativo de Programación y Desarrollo de Videojuegos 2D. 🌱🐰
+Desarrollado como proyecto agroecológico de videojuegos 2D. 🌱🐰
