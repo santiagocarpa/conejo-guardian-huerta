@@ -26,6 +26,16 @@
   padding: 0;
 }
 
+button, input[type="button"], input[type="submit"] {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button:focus, button:focus-visible {
+  outline: none !important;
+}
+
 body {
   font-family: var(--font-family);
   background: radial-gradient(circle at 50% 15%, #183a27 0%, var(--bg-primary) 100%);

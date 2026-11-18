@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>El Conejo Guardián de la Huerta - Edición Clima & Oleadas HD</title>
   <meta name="description" content="Videojuego 2D agroecológico: defiende los cultivos de insectos y cuervos con sistema de clima dinámico (lluvia regeneradora, nublado y sol) y oleadas equilibradas.">
-  <link rel="stylesheet" href="style.css?v=20261118c">
+  <link rel="stylesheet" href="style.css?v=20261118d">
 </head>
 <body>
 
@@ -82,18 +82,18 @@
         <p class="overlay-desc" id="overlayDesc">
           Los insectos y aves consumieron todos los nutrientes. ¡Mejora tus habilidades y vuelve a intentarlo!
         </p>
-        <button class="btn-primary" id="restartBtn">Reintentar Custodia 🌱</button>
+        <button class="btn-primary" id="restartBtn" tabindex="-1">Reintentar Custodia 🌱</button>
       </div>
 
       <!-- Controles Táctiles para Móvil / Pantalla Táctil -->
       <div class="touch-controls" id="touchControls">
         <div class="touch-dpad">
-          <button class="touch-btn" id="touchLeft" aria-label="Mover a la izquierda">◀</button>
-          <button class="touch-btn" id="touchRight" aria-label="Mover a la derecha">▶</button>
+          <button class="touch-btn" id="touchLeft" aria-label="Mover a la izquierda" tabindex="-1">◀</button>
+          <button class="touch-btn" id="touchRight" aria-label="Mover a la derecha" tabindex="-1">▶</button>
         </div>
         <div class="touch-actions">
-          <button class="touch-btn touch-btn-action" id="touchThrow" aria-label="Lanzar Zanahoria">🥕</button>
-          <button class="touch-btn touch-btn-jump" id="touchJump" aria-label="Saltar">▲</button>
+          <button class="touch-btn touch-btn-action" id="touchThrow" aria-label="Lanzar Zanahoria" tabindex="-1">🥕</button>
+          <button class="touch-btn touch-btn-jump" id="touchJump" aria-label="Saltar" tabindex="-1">▲</button>
         </div>
       </div>
     </div>
@@ -108,14 +108,14 @@
         <span class="kbd">Shift</span> Dash
       </div>
       <div class="controls-actions">
-        <button class="btn-action" id="fullscreenBtn" title="Pantalla Completa 720 por 1270 HD">
+        <button class="btn-action" id="fullscreenBtn" title="Pantalla Completa 720 por 1270 HD" tabindex="-1">
           ⛶ Pantalla Completa (720x1270 HD)
         </button>
-        <button class="btn-action btn-secondary" id="resolutionToggleBtn" title="Alternar formato Horizontal (1270x720) y Vertical (720x1270)">
+        <button class="btn-action btn-secondary" id="resolutionToggleBtn" title="Alternar formato Horizontal (1270x720) y Vertical (720x1270)" tabindex="-1">
           🔄 1270x720 / 720x1270
         </button>
         <label class="debug-toggle" title="Muestra las cajas de colisión y cooldowns de enemigos">
-          <input type="checkbox" id="debugBoxToggle">
+          <input type="checkbox" id="debugBoxToggle" tabindex="-1">
           <span>Modo Debug</span>
         </label>
       </div>
@@ -128,6 +128,6 @@
   </footer>
 
   <!-- Lógica y Motor del Juego con cache buster -->
-  <script src="main.js?v=20261118c"></script>
+  <script src="main.js?v=20261118d"></script>
 </body>
 </html>

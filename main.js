@@ -1811,7 +1811,10 @@ const UpgradeManager = {
     }
   ],
 
+  isChoosing: false,
+
   presentUpgrades() {
+    this.isChoosing = false;
     const shuffled = [...this.upgradesCatalog].sort(() => 0.5 - Math.random());
     const selected3 = shuffled.slice(0, 3);
 
@@ -1819,16 +1822,19 @@ const UpgradeManager = {
     selected3.forEach(upg => {
       const card = document.createElement('div');
       card.className = 'upgrade-card';
+      card.setAttribute('tabindex', '-1');
       card.innerHTML = `
         <div class="upgrade-card-icon">${upg.icon}</div>
         <div class="upgrade-card-type">${upg.type}</div>
         <div class="upgrade-card-name">${upg.title}</div>
         <div class="upgrade-card-description">${upg.desc}</div>
         <div class="upgrade-card-level">${upg.level === 0 ? '✨ Desbloquear' : `Nivel ${upg.level + 1}`}</div>
-        <button class="upgrade-card-btn">Elegir Mejora</button>
+        <button class="upgrade-card-btn" tabindex="-1">Elegir Mejora</button>
       `;
 
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         this.chooseUpgrade(upg);
       });
 
@@ -1836,13 +1842,27 @@ const UpgradeManager = {
     });
 
     upgradeScreen.classList.add('active');
+
+    // Desenfocar cualquier elemento activo para evitar que la barra espaciadora lo accione
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
   },
 
   chooseUpgrade(upgrade) {
+    if (this.isChoosing) return;
+    this.isChoosing = true;
+
+    // Desenfocar inmediatamente
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+
     upgrade.level++;
     upgrade.apply(rabbit, crops, [...insects, ...flyingPests], allies);
 
     upgradeScreen.classList.remove('active');
+    upgradeCardsGrid.innerHTML = ''; // Vaciar tarjetas para que no queden elementos residuales
     GameState.isPausedForUpgrade = false;
 
     AudioSys.playUpgrade();
@@ -1850,6 +1870,10 @@ const UpgradeManager = {
 
     // Iniciar limpia y ordenadamente la preparación de la siguiente ronda (4 segundos de respiro)
     WaveManager.prepareWave(WaveManager.currentWave + 1);
+
+    setTimeout(() => {
+      this.isChoosing = false;
+    }, 600);
   }
 };
 
@@ -1948,8 +1972,27 @@ const InputHandler = {
   keys: { left: false, right: false, jump: false, dash: false },
 
   init() {
+    // Desenfocar cualquier botón o elemento al hacer clic en cualquier parte de la pantalla
+    window.addEventListener('pointerup', () => {
+      if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+    });
+
     window.addEventListener('keydown', (e) => {
       AudioSys.init();
+
+      // CRUCIAL: Prevenir comportamiento por defecto de Espacio, Flechas y Enter
+      // Evita activar el botón enfocado (por ejemplo el botón de pantalla completa o de mejoras)
+      // y evita el desplazamiento/scroll de la página.
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
+
+      // Asegurar que ningún botón conserve el foco mientras se interactúa con el juego
+      if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
 
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = true;
@@ -1958,6 +2001,7 @@ const InputHandler = {
 
       // Lanzar zanahoria con J o Enter
       if (e.code === 'KeyJ' || e.code === 'Enter') {
+        if (e.code === 'Enter') e.preventDefault();
         if (rabbit && !GameState.isGameOver && !GameState.isPausedForUpgrade) {
           rabbit.tryThrowCarrot(projectiles);
         }
@@ -1965,6 +2009,9 @@ const InputHandler = {
     });
 
     window.addEventListener('keyup', (e) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = false;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = false;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') this.keys.jump = false;
@@ -1974,6 +2021,9 @@ const InputHandler = {
     // Clic del ratón sobre el canvas para lanzar zanahorias
     canvas.addEventListener('pointerdown', (e) => {
       AudioSys.init();
+      if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
       if (rabbit && !GameState.isGameOver && !GameState.isPausedForUpgrade) {
         rabbit.tryThrowCarrot(projectiles);
       }
@@ -2368,17 +2418,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Botón Pantalla Completa (720x1270 HD)
   if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', () => {
+    fullscreenBtn.addEventListener('click', (e) => {
       toggleFullscreen();
+      if (fullscreenBtn && fullscreenBtn.blur) fullscreenBtn.blur();
     });
   }
 
   // Botón Alternar Resolución (1270x720 / 720x1270)
   if (resolutionToggleBtn) {
-    resolutionToggleBtn.addEventListener('click', () => {
+    resolutionToggleBtn.addEventListener('click', (e) => {
       const nextMode = (GameState.orientation === 'landscape') ? 'portrait' : 'landscape';
       setCanvasResolution(nextMode);
       particles.addText(nextMode === 'portrait' ? '📱 Modo 720x1270 HD' : '💻 Modo 1270x720 HD', canvas.width / 2, canvas.height / 2, '#ecc94b', 24);
+      if (resolutionToggleBtn && resolutionToggleBtn.blur) resolutionToggleBtn.blur();
     });
   }
 
@@ -2386,6 +2438,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (debugBoxToggle) {
     debugBoxToggle.addEventListener('change', (e) => {
       GameState.debugMode = e.target.checked;
+      if (debugBoxToggle && debugBoxToggle.blur) debugBoxToggle.blur();
     });
   }
 
@@ -2393,6 +2446,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (restartBtn) {
     restartBtn.addEventListener('click', () => {
       setupGameEntities();
+      if (restartBtn && restartBtn.blur) restartBtn.blur();
     });
   }
 
