@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,27 +8,31 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>El Conejo Guardián de la Huerta - Edición Clima & Oleadas HD</title>
-  <meta name="description" content="Videojuego 2D agroecológico: defiende los cultivos de insectos y cuervos con sistema de clima dinámico (lluvia regeneradora, nublado y sol) y oleadas equilibradas.">
-  <link rel="stylesheet" href="style.css?v=20261118d">
+  <meta name="description"
+    content="Videojuego 2D agroecológico: defiende los cultivos de insectos y cuervos con sistema de clima dinámico (lluvia regeneradora, nublado y sol) y oleadas equilibradas.">
+  <link rel="stylesheet" href="style.css?v=20261125_story">
 </head>
+
 <body>
 
   <!-- Encabezado del Juego -->
   <header>
     <div class="badge">🌱 Guardián Agroecológico 2D</div>
     <h1>El Conejo Guardián de la Huerta</h1>
-    <p class="subtitle">Protege los cultivos de las plagas terrestres y voladoras. Aprovecha la lluvia para regenerar plantas y prepárate entre oleadas.</p>
+    <p class="subtitle">Protege los cultivos de las plagas terrestres y voladoras. Aprovecha la lluvia para regenerar
+      plantas y prepárate entre oleadas.</p>
   </header>
 
   <!-- Contenedor Principal del Juego -->
   <main class="game-wrapper" id="gameWrapper">
-    
+
     <!-- Barra Superior de Estado (HUD) -->
     <section class="hud-bar" aria-label="Información de la Partida">
       <!-- Sistema de Estado: Nutrientes Globales -->
       <div class="hud-item nutrient-container">
         <span class="hud-label" id="nutrientsLabel">Nutrientes de Huerta:</span>
-        <div class="nutrient-bar-bg" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-labelledby="nutrientsLabel">
+        <div class="nutrient-bar-bg" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"
+          aria-labelledby="nutrientsLabel">
           <div class="nutrient-bar-fill" id="nutrientFill" style="width: 100%;"></div>
         </div>
         <span class="hud-value" id="nutrientText">100%</span>
@@ -64,6 +69,58 @@
     <div class="canvas-container" id="canvasContainer">
       <canvas id="gameCanvas" width="1270" height="720"></canvas>
 
+      <!-- Pantalla de Introducción e Historia Ilustrada (Para niños y nuevos jugadores) -->
+      <div class="overlay-screen story-overlay active" id="storyScreen" role="dialog" aria-modal="true"
+        aria-labelledby="storyTitle">
+        <div class="story-modal">
+          <div class="story-top-bar">
+            <div class="story-header-info">
+              <span class="story-badge" id="storyBadge">🏡 Capítulo 1</span>
+              <span class="story-step-indicator" id="storyStepIndicator">1 de 4</span>
+            </div>
+            <button class="story-skip-btn" id="storySkipBtn" title="Saltar historia e ir al juego" tabindex="-1">
+              Saltar historia ⏩
+            </button>
+          </div>
+
+          <h2 class="story-title" id="storyTitle">¡La Huerta Mágica y Feliz!</h2>
+
+          <div class="story-image-wrapper">
+            <img class="story-image" id="storyImage" src="assets/story_1_huerta.jpg"
+              alt="Pelusa el conejito en la huerta feliz" />
+          </div>
+
+          <div class="story-text-box">
+            <p class="story-text" id="storyText">
+              En un hermoso valle verde y soleado vive <strong>Pelusa</strong>, un conejito blanco con su suave capita
+              verde esmeralda. Pelusa cuida con todo su amor las zanahorias más dulces y crujientes de la huerta. ¡Aquí
+              todo es paz, risas y hermosas flores!
+            </p>
+          </div>
+
+          <!-- Puntos indicadores de páginas del cuento -->
+          <div class="story-dots" id="storyDots" aria-label="Páginas del cuento">
+            <button class="story-dot active" data-index="0" aria-label="Página 1" tabindex="-1"></button>
+            <button class="story-dot" data-index="1" aria-label="Página 2" tabindex="-1"></button>
+            <button class="story-dot" data-index="2" aria-label="Página 3" tabindex="-1"></button>
+            <button class="story-dot" data-index="3" aria-label="Página 4" tabindex="-1"></button>
+          </div>
+
+          <!-- Botones de Navegación del Cuento -->
+          <div class="story-actions">
+            <button class="story-btn story-btn-prev" id="storyPrevBtn" tabindex="-1" disabled>
+              ⬅️ Anterior
+            </button>
+            <button class="story-btn story-btn-next" id="storyNextBtn" tabindex="-1">
+              Siguiente ➡️
+            </button>
+            <button class="story-btn story-btn-start hidden" id="storyStartBtn" tabindex="-1">
+              ¡A JUGAR Y PROTEGER LA HUERTA! 🥕🌱
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Pantalla de Selección de Habilidades (Al terminar cada oleada) -->
       <div class="overlay-screen upgrade-overlay" id="upgradeScreen">
         <div class="upgrade-modal">
@@ -92,7 +149,8 @@
           <button class="touch-btn" id="touchRight" aria-label="Mover a la derecha" tabindex="-1">▶</button>
         </div>
         <div class="touch-actions">
-          <button class="touch-btn touch-btn-action" id="touchThrow" aria-label="Lanzar Zanahoria" tabindex="-1">🥕</button>
+          <button class="touch-btn touch-btn-action" id="touchThrow" aria-label="Lanzar Zanahoria"
+            tabindex="-1">🥕</button>
           <button class="touch-btn touch-btn-jump" id="touchJump" aria-label="Saltar" tabindex="-1">▲</button>
         </div>
       </div>
@@ -102,16 +160,22 @@
     <section class="controls-bar">
       <div class="keys-hint">
         <span>Controles:</span>
-        <span class="kbd">←</span> <span class="kbd">→</span> o <span class="kbd">A</span> <span class="kbd">D</span> Moverse | 
-        <span class="kbd">W</span> / <span class="kbd">Espacio</span> Saltar | 
-        <span class="kbd">J</span> / <span class="kbd">Clic</span> Zanahoria | 
+        <span class="kbd">←</span> <span class="kbd">→</span> o <span class="kbd">A</span> <span class="kbd">D</span>
+        Moverse |
+        <span class="kbd">W</span> / <span class="kbd">Espacio</span> Saltar |
+        <span class="kbd">J</span> / <span class="kbd">Clic</span> Zanahoria |
         <span class="kbd">Shift</span> Dash
       </div>
       <div class="controls-actions">
+        <button class="btn-action btn-secondary" id="storyReplayBtn" title="Ver la historia ilustrada de Pelusa"
+          tabindex="-1">
+          📖 Historia
+        </button>
         <button class="btn-action" id="fullscreenBtn" title="Pantalla Completa 720 por 1270 HD" tabindex="-1">
           ⛶ Pantalla Completa (720x1270 HD)
         </button>
-        <button class="btn-action btn-secondary" id="resolutionToggleBtn" title="Alternar formato Horizontal (1270x720) y Vertical (720x1270)" tabindex="-1">
+        <button class="btn-action btn-secondary" id="resolutionToggleBtn"
+          title="Alternar formato Horizontal (1270x720) y Vertical (720x1270)" tabindex="-1">
           🔄 1270x720 / 720x1270
         </button>
         <label class="debug-toggle" title="Muestra las cajas de colisión y cooldowns de enemigos">
@@ -128,6 +192,7 @@
   </footer>
 
   <!-- Lógica y Motor del Juego con cache buster -->
-  <script src="main.js?v=20261118d"></script>
+  <script src="main.js?v=20261125_story"></script>
 </body>
+
 </html>

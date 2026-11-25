@@ -189,6 +189,21 @@ const AudioSys = {
     gain.connect(this.ctx.destination);
     osc.start();
     osc.stop(this.ctx.currentTime + 0.25);
+  },
+  playPageTurn() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
   }
 };
 
@@ -201,6 +216,7 @@ let GROUND_Y = 590;
 const GameState = {
   isGameOver: false,
   isPausedForUpgrade: false,
+  isStoryOpen: true, // Pausa inicial mientras se muestra el cuento ilustrado
   scoreRepelled: 0,
   debugMode: false,
   orientation: 'landscape', // 'landscape' (1270x720) o 'portrait' (720x1270)
@@ -229,6 +245,20 @@ const resolutionToggleBtn = document.getElementById('resolutionToggleBtn');
 const debugBoxToggle = document.getElementById('debugBoxToggle');
 const upgradeScreen = document.getElementById('upgradeScreen');
 const upgradeCardsGrid = document.getElementById('upgradeCardsGrid');
+
+// Referencias DOM del Cuento / Historia Ilustrada
+const storyScreen = document.getElementById('storyScreen');
+const storyBadge = document.getElementById('storyBadge');
+const storyStepIndicator = document.getElementById('storyStepIndicator');
+const storySkipBtn = document.getElementById('storySkipBtn');
+const storyTitle = document.getElementById('storyTitle');
+const storyImage = document.getElementById('storyImage');
+const storyText = document.getElementById('storyText');
+const storyDots = document.getElementById('storyDots');
+const storyPrevBtn = document.getElementById('storyPrevBtn');
+const storyNextBtn = document.getElementById('storyNextBtn');
+const storyStartBtn = document.getElementById('storyStartBtn');
+const storyReplayBtn = document.getElementById('storyReplayBtn');
 
 // ============================================================================
 // 3. FÍSICA: DETECCIÓN DE COLISIONES AABB
@@ -1994,6 +2024,19 @@ const InputHandler = {
         document.activeElement.blur();
       }
 
+      // Si la historia está abierta, controlar navegación de capítulos con teclado
+      if (GameState.isStoryOpen) {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          StoryManager.prev();
+          return;
+        }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space' || e.code === 'Enter') {
+          StoryManager.next();
+          return;
+        }
+        return;
+      }
+
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = true;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') this.keys.jump = true;
@@ -2024,7 +2067,7 @@ const InputHandler = {
       if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
       }
-      if (rabbit && !GameState.isGameOver && !GameState.isPausedForUpgrade) {
+      if (rabbit && !GameState.isGameOver && !GameState.isPausedForUpgrade && !GameState.isStoryOpen) {
         rabbit.tryThrowCarrot(projectiles);
       }
     });
@@ -2189,7 +2232,7 @@ function gameLoop(currentTimestamp) {
   const deltaTime = Math.min(rawDeltaTime, 0.1);
   lastTimestamp = currentTimestamp;
 
-  if (!GameState.isGameOver && !GameState.isPausedForUpgrade) {
+  if (!GameState.isGameOver && !GameState.isPausedForUpgrade && !GameState.isStoryOpen) {
     update(deltaTime);
   }
 
@@ -2411,10 +2454,190 @@ function triggerGameOver() {
 }
 
 // ============================================================================
+// 18. GESTOR DE LA HISTORIA E INTRODUCCIÓN ILUSTRADA (StoryManager)
+// ============================================================================
+const StoryManager = {
+  currentIndex: 0,
+  hasStartedGame: false,
+  slides: [
+    {
+      badge: '🏡 Capítulo 1',
+      step: '1 de 4',
+      title: '¡La Huerta Mágica y Feliz!',
+      image: 'assets/story_1_huerta.jpg',
+      alt: 'Pelusa el conejito en la huerta feliz',
+      text: 'En un hermoso valle verde y soleado vive <strong>Pelusa</strong>, un conejito blanco con su suave capita verde esmeralda. Pelusa cuida con todo su amor las zanahorias más dulces y crujientes de la huerta. ¡Aquí todo es paz, risas y hermosas flores!'
+    },
+    {
+      badge: '🐛 Capítulo 2',
+      step: '2 de 4',
+      title: '¡Llegan Amigos Muy Hambrientos!',
+      image: 'assets/story_2_plagas.jpg',
+      alt: 'Orugas gorditas, escarabajos y cuervos traviesos llegando a la huerta',
+      text: 'Pero una tarde tranquila... ¡rum-rum y aleteos traviesos! Orugas regordetas, escarabajos curiosos y cuervos voladores llegaron a la huerta con mucha hambre. Si se comen los nutrientes del suelo, ¡las plantitas se quedarán sin fuerza!'
+    },
+    {
+      badge: '🦸‍♂️ Capítulo 3',
+      step: '3 de 4',
+      title: '¡Pelusa al Rescate sin Químicos!',
+      image: 'assets/story_3_conejo.jpg',
+      alt: 'Pelusa saltando por el aire lanzando zanahorias mágicas que hacen cosquillas',
+      text: 'Pelusa es un guardián agroecológico: ¡él <strong>jamás usa químicos malos ni venenos</strong> que dañen a los animales! Con saltos gigantescos y piruetas en el aire, lanza sabrosas zanahorias que hacen cosquillas a las plagas para guiarlas amablemente de vuelta al bosque.'
+    },
+    {
+      badge: '🌟 Capítulo 4',
+      step: '4 de 4',
+      title: '¡Tú Eres el Héroe de la Huerta!',
+      image: 'assets/story_4_ayuda.jpg',
+      alt: 'Pelusa junto a una tierna abejita y mariquitas invitando a jugar',
+      text: 'Las abejitas del polen, las mariquitas y las zanahorias necesitan tu ayuda. Usa las <strong>flechas o botones para correr</strong>, la tecla <strong>Espacio para saltar</strong> y la tecla <strong>J o Clic para lanzar zanahorias</strong>. ¡Vamos juntos a salvar la huerta! 🥕🌱'
+    }
+  ],
+
+  init() {
+    if (!storyScreen) return;
+
+    if (storyNextBtn) {
+      storyNextBtn.addEventListener('click', () => {
+        this.next();
+        if (storyNextBtn.blur) storyNextBtn.blur();
+      });
+    }
+
+    if (storyPrevBtn) {
+      storyPrevBtn.addEventListener('click', () => {
+        this.prev();
+        if (storyPrevBtn.blur) storyPrevBtn.blur();
+      });
+    }
+
+    if (storyStartBtn) {
+      storyStartBtn.addEventListener('click', () => {
+        this.closeAndStart();
+        if (storyStartBtn.blur) storyStartBtn.blur();
+      });
+    }
+
+    if (storySkipBtn) {
+      storySkipBtn.addEventListener('click', () => {
+        this.closeAndStart();
+        if (storySkipBtn.blur) storySkipBtn.blur();
+      });
+    }
+
+    if (storyReplayBtn) {
+      storyReplayBtn.addEventListener('click', () => {
+        this.openStory();
+        if (storyReplayBtn.blur) storyReplayBtn.blur();
+      });
+    }
+
+    if (storyDots) {
+      const dots = storyDots.querySelectorAll('.story-dot');
+      dots.forEach((dot) => {
+        dot.addEventListener('click', () => {
+          const idx = parseInt(dot.getAttribute('data-index'), 10);
+          if (!isNaN(idx)) {
+            this.goTo(idx);
+            if (dot.blur) dot.blur();
+          }
+        });
+      });
+    }
+
+    this.showSlide(0);
+  },
+
+  showSlide(index) {
+    if (index < 0 || index >= this.slides.length) return;
+    this.currentIndex = index;
+    const data = this.slides[index];
+
+    if (storyBadge) storyBadge.textContent = data.badge;
+    if (storyStepIndicator) storyStepIndicator.textContent = data.step;
+    if (storyTitle) storyTitle.textContent = data.title;
+    if (storyText) storyText.innerHTML = data.text;
+    if (storyImage) {
+      storyImage.style.opacity = '0.35';
+      storyImage.src = data.image;
+      storyImage.alt = data.alt;
+      setTimeout(() => { if (storyImage) storyImage.style.opacity = '1'; }, 60);
+    }
+
+    if (storyDots) {
+      const dots = storyDots.querySelectorAll('.story-dot');
+      dots.forEach((dot, i) => {
+        if (i === index) dot.classList.add('active');
+        else dot.classList.remove('active');
+      });
+    }
+
+    if (storyPrevBtn) {
+      storyPrevBtn.disabled = (index === 0);
+    }
+
+    const isLast = (index === this.slides.length - 1);
+    if (isLast) {
+      if (storyNextBtn) storyNextBtn.classList.add('hidden');
+      if (storyStartBtn) storyStartBtn.classList.remove('hidden');
+    } else {
+      if (storyNextBtn) storyNextBtn.classList.remove('hidden');
+      if (storyStartBtn) storyStartBtn.classList.add('hidden');
+    }
+  },
+
+  next() {
+    AudioSys.init();
+    AudioSys.playPageTurn();
+    if (this.currentIndex < this.slides.length - 1) {
+      this.showSlide(this.currentIndex + 1);
+    } else {
+      this.closeAndStart();
+    }
+  },
+
+  prev() {
+    AudioSys.init();
+    AudioSys.playPageTurn();
+    if (this.currentIndex > 0) {
+      this.showSlide(this.currentIndex - 1);
+    }
+  },
+
+  goTo(index) {
+    AudioSys.init();
+    AudioSys.playPageTurn();
+    this.showSlide(index);
+  },
+
+  openStory() {
+    AudioSys.init();
+    AudioSys.playPageTurn();
+    GameState.isStoryOpen = true;
+    if (storyScreen) storyScreen.classList.add('active');
+    this.showSlide(0);
+  },
+
+  closeAndStart() {
+    AudioSys.init();
+    GameState.isStoryOpen = false;
+    if (storyScreen) storyScreen.classList.remove('active');
+
+    if (!this.hasStartedGame) {
+      this.hasStartedGame = true;
+      WaveManager.prepareWave(1);
+    } else {
+      AudioSys.playWaveStart();
+    }
+  }
+};
+
+// ============================================================================
 // 19. ARRANQUE E INICIALIZACIÓN
 // ============================================================================
 window.addEventListener('DOMContentLoaded', () => {
   InputHandler.init();
+  StoryManager.init();
 
   // Botón Pantalla Completa (720x1270 HD)
   if (fullscreenBtn) {
