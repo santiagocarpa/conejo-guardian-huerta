@@ -2677,3 +2677,22 @@ window.addEventListener('DOMContentLoaded', () => {
   setupGameEntities();
   requestAnimationFrame(gameLoop);
 });
+
+// ============================================================================
+// 20. CONECTIVIDAD Y CICLO DE VIDA PARA EJECUTABLE LOCAL (.EXE)
+// ============================================================================
+if (typeof window !== 'undefined' && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')) {
+  // Mantener vivo el servidor local del ejecutable con heartbeats periódicos
+  setInterval(() => {
+    fetch('/api/ping', { method: 'POST', cache: 'no-store' }).catch(() => {});
+  }, 2000);
+
+  // Notificar apagado limpio cuando el usuario cierra la ventana del juego
+  window.addEventListener('beforeunload', () => {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/shutdown');
+    } else {
+      fetch('/api/shutdown', { method: 'POST', keepalive: true }).catch(() => {});
+    }
+  });
+}
